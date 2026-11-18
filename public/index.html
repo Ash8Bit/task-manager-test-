@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Node + Postgres Task App</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 500px; margin: 40px auto; padding: 0 20px; }
+    form { display: flex; gap: 8px; margin-bottom: 20px; }
+    input { flex: 1; padding: 8px; font-size: 16px; }
+    button { padding: 8px 14px; cursor: pointer; }
+    ul { list-style: none; padding: 0; }
+    li { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #ddd; }
+    .done { text-decoration: line-through; color: #888; }
+  </style>
+</head>
+<body>
+  <h2>Task Manager</h2>
+  <form id="task-form">
+    <input type="text" id="task-input" placeholder="Enter a new task..." required />
+    <button type="submit">Add</button>
+  </form>
+  <ul id="task-list"></ul>
+
+  <script>
+    const form = document.getElementById('task-form');
+    const input = document.getElementById('task-input');
+    const list = document.getElementById('task-list');
+
+    async function loadTasks() {
+      const res = await fetch('/api/tasks');
+      const tasks = await res.json();
+      list.innerHTML = '';
+
+      tasks.forEach(task => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <span class="${task.completed ? 'done' : ''}" style="cursor:pointer"
+                onclick="toggleTask(${task.id}, ${!task.completed})">
+            ${task.title}
+          </span>
+          <button onclick="deleteTask(${task.id})">Delete</button>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: input.value })
+      });
+      input.value = '';
+      loadTasks();
+    });
+
+    async function toggleTask(id, completed) {
+      await fetch(`/api/tasks/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed })
+      });
+      loadTasks();
+    }
+
+    async function deleteTask(id) {
+      await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
+      loadTasks();
+    }
+
+    loadTasks();
+  </script>
+</body>
+</html>
